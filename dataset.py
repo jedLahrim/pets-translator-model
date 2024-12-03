@@ -2,50 +2,46 @@ import os
 
 import librosa
 import torch
-import torchaudio.transforms
 from torch.utils.data import Dataset
 
-# Check available backends
-print(torchaudio.list_audio_backends())
 
 class PetDataset(Dataset):
-    def __init__(self, data_dir, transform=None, target_sample_rate=22050, num_samples=22050):
+    def __init__(self, data_dir, labels_dict=None, transform=None,
+                 target_sample_rate=16000, num_samples=16000):
         self.data_dir = data_dir
         self.transform = transform
         self.target_sample_rate = target_sample_rate
         self.num_samples = num_samples
+        self.labels_dict = labels_dict or {}
 
-        # Get list of audio files
-        self.audio_files = [f for f in os.listdir(data_dir) if f.endswith('.mp3')]
-
-        # Assuming you have labels - create a simple label system if not
-        self.labels = [0 if 'dog' in f else 1 for f in self.audio_files]  # Example label logic
+        # Get list of audio files with their descriptions
+        self.audio_files = []
+        for filename in os.listdir(data_dir):
+            if filename.endswith('.mp3'):
+                description = self.labels_dict.get(filename, "Unknown pet behavior")
+                self.audio_files.append((filename, description))
 
     def __len__(self):
         return len(self.audio_files)
 
     def __getitem__(self, idx):
-        audio_path = os.path.join(self.data_dir, self.audio_files[idx])
+        audio_file, description = self.audio_files[idx]
+        audio_path = os.path.join(self.data_dir, audio_file)
 
         # Load audio file
         signal, sr = librosa.load(audio_path, sr=self.target_sample_rate)
 
-        # Convert to tensor
-        signal_tensor = torch.from_numpy(signal).float()
+        # Extract audio features
+        mfcc = librosa.feature.mfcc(y=signal, sr=sr, n_mfcc=13)
+        mfcc_processed = mfcc.T  # Transpose to match model input shape
+
+        signal_tensor = torch.from_numpy(mfcc_processed).float()
 
         # Truncate or pad to consistent length
         if len(signal_tensor) > self.num_samples:
             signal_tensor = signal_tensor[:self.num_samples]
         else:
-            signal_tensor = torch.nn.functional.pad(signal_tensor, (0, self.num_samples - len(signal_tensor)))
+            pad_width = self.num_samples - len(signal_tensor)
+            signal_tensor = torch.nn.functional.pad(signal_tensor, (0, 0, 0, pad_width))
 
-        # Get corresponding label
-        label = self.labels[idx]
-
-        return signal_tensor, label
-
-
-def load_audio(file_path):
-    # Using librosa to load audio
-    audio, sample_rate = librosa.load(file_path, sr=None)
-    return torch.from_numpy(audio), sample_rate
+        return signal_tensor, description

@@ -1,5 +1,13 @@
+import torch
 import torchaudio.transforms as T
+from torch import nn
 
 
-def get_transforms():
-    return T.Resample(orig_freq=48000, new_freq=16000)
+def get_audio_transforms():
+    """
+    Audio preprocessing transformations
+    """
+    return nn.Sequential(
+        T.MelSpectrogram(sample_rate=config.SAMPLE_RATE),
+        T.AmplitudeToDB()
+    )

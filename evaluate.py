@@ -1,43 +1,59 @@
 import torch
 from torch.utils.data import DataLoader
+from torchtext.data.utils import get_tokenizer
 
-from config import DATA_DIR, BATCH_SIZE
+from config import *
 from dataset import PetDataset
-from model import PetPredictorModel  # Import your model class
-from preprocess import get_transforms
+from model import PetBehaviorModel
+
+
+def generate_description(model, audio_features, vocab, max_length=50):
+    model.eval()
+    with torch.no_grad():
+        # Encode audio features
+        audio_encoded = model(audio_features)
+
+        # Generate description
+        generated_tokens = [vocab['<start>']]
+        for _ in range(max_length):
+            current_tokens = torch.tensor([generated_tokens]).to(audio_features.device)
+            output, _ = model(audio_features, current_tokens)
+
+            # Get the last time step's prediction
+            predicted_token = output[0, -1, :].argmax().item()
+            generated_tokens.append(predicted_token)
+
+            if predicted_token == vocab['<end>']:
+                break
+
+        # Convert tokens back to words
+        tokenizer = get_tokenizer('basic_english')
+        return ' '.join(vocab.lookup_tokens(generated_tokens[1:-1]))
 
 
 def evaluate(model_path):
-    # Create dataset to determine input length
-    dataset = PetDataset(DATA_DIR, transform=get_transforms())
-    dataloader = DataLoader(dataset, batch_size=BATCH_SIZE, shuffle=False)
+    # Load saved model and vocabulary
+    checkpoint = torch.load(model_path)
+    vocab = checkpoint['vocab']
 
-    # Determine input length
-    sample_audio, _ = next(iter(dataloader))
-    input_length = sample_audio.shape[-1]
+    # Recreate model
+    model = PetBehaviorModel(
+        input_dim=13,
+        embedding_dim=EMBEDDING_DIM,
+        hidden_dim=HIDDEN_DIM,
+        vocab_size=len(vocab)
+    )
+    model.load_state_dict(checkpoint['model_state_dict'])
 
-    # Recreate the model with the same architecture
-    model = PetPredictorModel(input_length=input_length)
+    # Prepare test dataset
+    test_dataset = PetDataset(DATA_DIR)
+    test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
 
-    # Load the saved state dict
-    model.load_state_dict(torch.load(model_path))
+    # Evaluate
+    for audio_features, _ in test_loader:
+        description = generate_description(model, audio_features, vocab)
+        print(f"Generated Description: {description}")
 
-    # Set the model to evaluation mode
-    model.eval()
 
-    total = 0
-    correct = 0
-    with torch.no_grad():
-        for audio, labels in dataloader:
-            # Ensure correct input shape
-            if audio.dim() == 1:
-                audio = audio.unsqueeze(0).unsqueeze(0)
-            elif audio.dim() == 2:
-                audio = audio.unsqueeze(1)
-
-            outputs = model(audio)
-            _, predicted = torch.max(outputs, 1)
-            total += labels.size(0)
-            correct += (predicted == labels).sum().item()
-
-    print(f"Accuracy: {correct / total * 100:.2f}%")
+if __name__ == "__main__":
+    evaluate(MODEL_PATH)

@@ -1,33 +1,35 @@
 import torch.nn as nn
 
 
-class PetPredictorModel(nn.Module):
-    def __init__(self, input_length):
-        super(PetPredictorModel, self).__init__()
+class PetBehaviorModel(nn.Module):
+    def __init__(self, input_dim, embedding_dim, hidden_dim, vocab_size):
+        super(PetBehaviorModel, self).__init__()
 
-        # Dynamically calculate the output size after convolution and pooling
-        def conv_output_length(input_length, kernel_size, stride, padding=0):
-            return ((input_length + 2 * padding - kernel_size) // stride) + 1
+        # Audio feature extraction
+        self.audio_encoder = nn.Sequential(
+            nn.Conv1d(input_dim, 64, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool1d(2),
+            nn.Conv1d(64, 128, kernel_size=3, stride=1, padding=1),
+            nn.ReLU(),
+            nn.MaxPool1d(2)
+        )
 
-        # First convolutional layer
-        self.conv1 = nn.Conv1d(1, 16, kernel_size=5, stride=2)
-        conv1_out = conv_output_length(input_length, kernel_size=5, stride=2)
+        # Text generation components
+        self.embedding = nn.Embedding(vocab_size, embedding_dim)
+        self.lstm = nn.LSTM(embedding_dim, hidden_dim, batch_first=True)
+        self.fc = nn.Linear(hidden_dim, vocab_size)
 
-        # Pooling layer
-        self.pool = nn.MaxPool1d(kernel_size=2)
-        pool_out = conv_output_length(conv1_out, kernel_size=2, stride=2)
+    def forward(self, audio_features, captions=None):
+        # Encode audio features
+        audio_encoded = self.audio_encoder(audio_features.transpose(1, 2))
+        audio_encoded = audio_encoded.mean(dim=2)  # Global average pooling
 
-        # Fully connected layer
-        self.relu = nn.ReLU()
-        self.fc = nn.Linear(16 * pool_out, 2)  # Adjust output classes as needed
+        # Text generation (if captions provided)
+        if captions is not None:
+            embedded_captions = self.embedding(captions)
+            lstm_out, _ = self.lstm(embedded_captions)
+            outputs = self.fc(lstm_out)
+            return outputs, audio_encoded
 
-    def forward(self, x):
-        # Ensure input is in the right shape (batch_size, channels, length)
-        if x.dim() == 2:
-            x = x.unsqueeze(1)  # Add channel dimension if missing
-
-        x = self.conv1(x)
-        x = self.relu(x)
-        x = self.pool(x)
-        x = x.view(x.size(0), -1)  # Flatten
-        return self.fc(x)
+        return audio_encoded
