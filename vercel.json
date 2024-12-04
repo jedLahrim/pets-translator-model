@@ -2,17 +2,14 @@
   "version": 2,
   "builds": [
     {
-      "src": "app.py",
+      "src": "wsgi.py",
       "use": "@vercel/python"
     }
   ],
-    "config": {
-        "maxDuration": 120
-      },
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "app.py"
+      "dest": "/wsgi.py"
     }
   ]
 }
