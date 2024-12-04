@@ -21,7 +21,7 @@ label_encoder = LabelEncoder()
 label_encoder.fit(labels)
 
 
-def extract_features(file_path, n_mfcc=40, max_length=200):
+def extract_features(file_path, n_mfcc=20, max_length=100):
     try:
         audio, sample_rate = librosa.load(file_path, sr=None)
         mfcc = librosa.feature.mfcc(y=audio, sr=sample_rate, n_mfcc=n_mfcc)
