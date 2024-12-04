@@ -7,7 +7,7 @@
     }
   ],
     "config": {
-        "maxDuration": 120000
+        "maxDuration": 120
       },
   "routes": [
     {
