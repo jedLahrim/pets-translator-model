@@ -43,7 +43,7 @@ def predict():
 
     try:
         file_path = f"{DATA_DIR}/{file.filename}"
-        file.save(file_path)
+        # file.save(file_path)
 
         # Extract features from the audio
         feature = extract_features(file_path)
@@ -63,4 +63,4 @@ def predict():
 
 
 if __name__ == '__main__':
-    app.run(debug=True, host="0.0.0.0", port=5000)
+    app.run(debug=False, host="localhost", port=5002)
