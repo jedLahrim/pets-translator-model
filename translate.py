@@ -5,10 +5,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import LabelEncoder
 
 from config import DATA_DIR
-from datasets.labels_datasets import LABELS_DATASETS
+from datasets.labels_datasets import PETS_LABELS_DATASETS
 
 # Step 1: Prepare dataset
-labels_dict = LABELS_DATASETS
+labels_dict = PETS_LABELS_DATASETS
 
 audio_files = list(labels_dict.keys())
 labels = list(labels_dict.values())
@@ -87,5 +87,5 @@ def predict_audio(input_file_name):
     return pred_label[0]
 
 
-test_audio = 'dog_1.wav'  # Replace with your test file
+test_audio = 'dog_46.wav'  # Replace with your test file
 print("Prediction:", predict_audio(test_audio))

@@ -26,7 +26,7 @@ def build_vocabulary(captions):
 def train():
     # Prepare dataset
     labels_dict = {
-        'dog-barking-101721.mp3': 'the dog is actually sick',
+        'dog_46.wav': 'the dog is actually sick',
         'dog-barking-101722.mp3': 'your dog want to play',
         'dog-barking-101723.wav': 'this dog is smelling a danger',
         # Add more mappings

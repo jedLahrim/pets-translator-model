@@ -4,13 +4,13 @@ import tensorflow as tf
 from sklearn.preprocessing import LabelEncoder
 
 from config import DATA_DIR
-from datasets.labels_datasets import LABELS_DATASETS
+from datasets.labels_datasets import PETS_LABELS_DATASETS
 
 # Load the saved model
 saved_model = tf.keras.models.load_model("pet_translator_model.keras", compile=False)
 
 # Define the labels and encoder (same as in `translate.py`)
-labels_dict = LABELS_DATASETS
+labels_dict = PETS_LABELS_DATASETS
 
 labels = list(labels_dict.values())
 label_encoder = LabelEncoder()
@@ -48,5 +48,5 @@ def predict_audio(input_file_name):
 
 
 # Test with an audio file
-test_audio = 'dog_1.wav'  # Replace with the actual test file name
+test_audio = 'cats-fighting-73284.mp3'  # Replace with the actual test file name
 print("Prediction:", predict_audio(test_audio))
